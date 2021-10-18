@@ -1,0 +1,97 @@
+*{
+    margin: 0;
+    padding: 0;
+
+}
+h2{
+    font-size: 2em;
+    text-align: center;
+    font-weight: 300;
+/*    margin-top:-25px;*/
+
+}
+.title{
+    font-size: 2.5em;
+    font-weight: 300;
+    text-align: center;      
+}
+
+/*Titulos do formulários*/
+.title-pg{
+    font-size: 2em;
+    text-align: center;
+    text-transform: uppercase;
+/*    margin-bottom: -30px;*/
+}
+.cabecalho{
+
+    background: #99CCFF;
+}
+
+
+
+.edit{font-size: 1em; color: #242063; text-decoration: none;}
+.delete{font-size: 1em; color: #b12020; text-decoration: none;}
+.icone-usuario{text-transform: uppercase;}
+
+html, body {
+    background-color: #fff;
+    color: #636b6f;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 100;
+    height: 100vh;
+    margin: 0;
+}
+
+.full-height {
+    height: 100vh;
+}
+
+.flex-center {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.position-ref {
+    position: relative;
+}
+
+.top-right {
+    position: absolute;
+    right: 10px;
+    top: 18px;
+}
+
+.content {
+    text-align: center;
+}
+
+.links > a {
+    color: #636b6f;
+    padding: 0 25px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1rem;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+
+/*tudo que for menor que  max-width:600px 
+tudo que for maior que  min-width:600px 
+*/
+@media(max-width:600px){
+    .title{
+        font-size: 1.4em;
+        font-weight: 300;
+        margin: 0 auto;
+
+    }
+    h4{
+        font-size: 1.2em;
+        font-weight: 300;
+        text-align: center;
+
+    }
+}
