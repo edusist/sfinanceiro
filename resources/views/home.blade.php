@@ -4,7 +4,7 @@
 
 <div class="container">
     <div class="jumbotron">
-        <h2 style="text-align: center;">Sistema de Gestão Financeira - AIO</h2> 
+        <h2 style="text-align: center;">Sistema de Gestão Financeira</h2> 
         <div class="row">
 
             <!--Recebimento-->

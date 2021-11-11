@@ -10,7 +10,7 @@
 <h4>Seja bem vindo(a) <strong>{{ucwords(Auth::user()->name)}}</strong>!</h4>
     <div class="jumbotron pg-home">
         
-        <h2>Sistema de Gestão Financeira - AIO</h2><br/><br/>
+        <h2>Sistema de Gestão Financeira</h2><br/><br/>
         <div class="row">
 
             <!--Recebimento-->
@@ -19,7 +19,8 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-12 text-center">
-                                <h4>À receber: <strong>R$ {{$areceber}}</strong></h4>
+                                <h3>Recebimento:</h3>
+                                <h4>À receber: <strong>R$ {{$aReceber}}</strong></h4>
                                 <h4>Recebido: <strong>R$ {{$recebido}}</strong></h4>
                             </div>
                         </div>
@@ -44,7 +45,8 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-12 text-center">
-                                <h4>À pagar: <strong>R${{$apagar}}</strong></h4>
+                                <h3>Pagamento:</h3>
+                                <h4>À pagar: <strong>R${{$aPagar}}</strong></h4>
                                 <h4>Pago: <strong>R${{$pago}}</strong></h4>
                             </div>
                         </div>
@@ -69,10 +71,9 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-12 text-center">
-                                <h3>Saldo</h3>
-                                <h4> Fluxo Caixa: <strong>R${{$saldo_fluxo}}</strong> </h4>
-                                <h4> Dinheiro:  <strong>R${{$saldo_dinheiro}}</strong> <br />Banco: <strong>R${{$saldo_banco}}</strong></h4>                                
-                                <h4>Total: <strong>R${{$saldo}}</strong></h4>
+                                <h3>Fluxo Caixa:</h3>
+                                <h4>À receber - À pagar = <strong>R${{$saldo}}</strong> </h4>                               
+                                <h4>Saldo Recebido - Pago = <strong>R${{$saldo_fluxo}}</strong></h4>
                             </div>
                         </div>
 

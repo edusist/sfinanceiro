@@ -25,7 +25,9 @@ h2{
 }
 .cabecalho{
 
-    background: #99CCFF;
+    background: #337AB7;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 
@@ -70,7 +72,7 @@ html, body {
 .links > a {
     color: #636b6f;
     padding: 0 25px;
-    font-size: 12px;
+    font-size: 1rem;
     font-weight: 600;
     letter-spacing: .1rem;
     text-decoration: none;

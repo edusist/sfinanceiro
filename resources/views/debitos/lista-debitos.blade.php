@@ -6,9 +6,9 @@
 @push('scripts')
     <link rel="stylesheet" href="{{url('assets/css/table-striped.css')}}"/>
 @endpush
-
+<h4>Seja bem vindo(a) à <strong style="text-transform:capitalize;">{{Auth::user()->name }}</strong>!</h4>
 <h2 class="title-pg">{{$title}}</h2>
-
+<h3 class="text-center">Periódo do Mês:<strong>{{$carbon->now()->format('m/Y')}}</strong></h3>
 <!--Mensagem de sucesso-->
 @if(session()->has('sucesso'))
 <div class="alert alert-success">
@@ -41,6 +41,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Cód. Pagamento</th>
                         <th>Nome Débito</th>
                         <th>Data pagamento</th>
                         <th>Valor</th>
@@ -52,6 +53,7 @@
                     @foreach($obj_pag as $valor)
                     <tr>
                         <td>{{$valor->id}}</td>
+                        <td><strong>{{$valor->pagamento_id}}</strong></td>
                         <td>{{$valor->nome_debito}}</td>  
                         <td>{{$carbon->parse($valor->data_pagamento)->format('d/m/Y')}}</td>
                         <td>R${{number_format($valor->valor, 2, ',', '.')}}</td>       

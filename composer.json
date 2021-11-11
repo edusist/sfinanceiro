@@ -5,14 +5,14 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "php": ">=7.1.1",
-        "artesaos/cidadesbr": "^1.0",
-        "barryvdh/laravel-dompdf": "^0.8.0",
-        "consoletvs/charts": "^4.6",
+        "php": ">=7.1.1",     
+        "barryvdh/laravel-dompdf": "^0.8.0",        
         "doctrine/dbal": "^2.5",
-        "laravel/framework": "5.4.*",
+        "laravel/framework": "~5.8",
         "laravel/tinker": "~1.0",
-        "laravelcollective/html": "^5.4.0"
+        "laravelcollective/html": "^5.4.0",
+        "maatwebsite/excel": "^3.0"
+        
        
         
     },

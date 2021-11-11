@@ -23,11 +23,13 @@ class DebitoController extends Controller {
 
     public function listaDebitos() {
 
-        $title = 'Débitos da empresa';
+        $title = 'Débitos';
 
         //Somatório dos vréditos
         $total = DB::table('debitos')
                 ->select(DB::raw('sum(valor)as total'))
+                ->whereRaw('(MONTH(debitos.data_pagamento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(debitos.data_pagamento) = YEAR(CURDATE()))')
                 ->get('valor');
 
         foreach ($total as $total_cred):
@@ -47,7 +49,8 @@ class DebitoController extends Controller {
                 ->join('forma_pagamentos', 'debitos.forma_pagamento_id', '=', 'forma_pagamentos.id')                
                 ->join('sub_cat_pagamentos', 'pagamentos.subcat_pag_id', '=', 'sub_cat_pagamentos.id')
                 ->select('debitos.*', 'pagamentos.nome_pagamento', 'forma_pagamentos.tipo', 'sub_cat_pagamentos.nome')
-                ->OrderBy('debitos.data_pagamento', 'desc')
+                ->whereRaw('(MONTH(debitos.data_pagamento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(debitos.data_pagamento) = YEAR(CURDATE()))')
                 ->paginate($this->total_paginas);
         
         //dd($obj_pag);
@@ -101,7 +104,7 @@ class DebitoController extends Controller {
                 $nome_banco[] = $banco;
             endforeach;        
 
-            return view('debitos.pago', compact('arr_deb', 'dataFormatoBr', 'title', 'nome_fornecedor', 'forma_pagamento', 'nome_banco'));
+            return view('debitos.pago', compact('arr_deb', 'dataFormatoBr', 'title', 'forma_pagamento', 'nome_banco'));
 
         endif;
     }
@@ -109,7 +112,7 @@ class DebitoController extends Controller {
     //Recuperar dados vindo do formulário pago.blade
     public function postPago(Request $requisicao) {
         
-        //dd($requisicao->all());
+        
 
         //Pega o id-pagamento vindo o formulário campo hidden
         $id_forma_pagamento = $requisicao->input('id-forma-pagamento');
@@ -152,10 +155,10 @@ class DebitoController extends Controller {
             //Recupera a data atual
             $data_atual = $this->objCarbon->now()->format('Y-m-d H:i:s');
 
-            //alterar status de pagamento para 1  
+            //alterar status de pagamento para 2 pago
             $alterar = DB::table('pagamentos')
                         ->where('id', $id_pagamento)
-                        ->update(['status' => '1']);
+                        ->update(['status' => '2']);
 
             //dd($alterar);
             $salvar_debito = $this->objDebito->create([
@@ -171,9 +174,9 @@ class DebitoController extends Controller {
             if ($salvar_debito && $alterar):
                 
                 //Rota do index dentro do controller
-                return redirect()->route('pagamento.index')->with(['sucesso' => 'Crédito salvo com sucesso!']); 
+                return redirect()->route('pagamento.index')->with(['sucesso' => 'Débito salvo com sucesso!']); 
             else:
-                return redirect()->back()->withErrors(['errors' => 'Näo possivel salvar o crédito!']);
+                return redirect()->back()->withErrors(['errors' => 'Näo possivel salvar o débito!']);
 
             endif; 
             
@@ -227,7 +230,7 @@ class DebitoController extends Controller {
             //alterar status de pagamento para 1  
             $alterar = DB::table('pagamentos')
                         ->where('id', $id_pagamento)
-                        ->update(['status' => '1']);
+                        ->update(['status' => '2']);
             //dd($alterar);
             //Salvar na tabela debito
             $salvar_debito = $this->objDebito->create([
@@ -245,10 +248,10 @@ class DebitoController extends Controller {
             if ($salvar_debito && $alterar):
 
                 //Rota do index dentro do controller
-                return redirect()->route('pagamento.index')->with(['sucesso' => 'Crédito salvo com sucesso!']); 
+                return redirect()->route('pagamento.index')->with(['sucesso' => 'Débito salvo com sucesso!']); 
 
             else:
-                return redirect()->back()->withErrors(['errors' => 'Näo possivel salvar o crédito!']);
+                return redirect()->back()->withErrors(['errors' => 'Näo possivel salvar o débito!']);
 
             endif;
 

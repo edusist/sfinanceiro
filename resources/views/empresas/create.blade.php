@@ -114,7 +114,7 @@
                 <label>Estado:</label>
                 <div class="input-group">
                     <div class="input-group-addon"><i class="glyphicon glyphicon-list"></i></div>
-                    <select id="uf" name="uf" default="UF:" class="form-control"></select>
+                    <input id="uf" name="uf" default="UF:" class="form-control">
 
                 </div>
             </div>
@@ -123,7 +123,7 @@
                 <label>Cidade:</label>  
                 <div class="input-group">
                     <div class="input-group-addon"><i class="glyphicon glyphicon-globe"></i></div>
-                    <select id="cidade" name="cidade" class="form-control"></select>
+                    <input id="cidade" name="cidade" class="form-control">
 
                 </div>
             </div>

@@ -66,19 +66,19 @@ class CompanieController extends Controller {
         $bairro           = $requisicao->input('bairro');
         $complemento      = $requisicao->input('complemento');
         $uf               = $requisicao->input('uf');
-        $id_cidade        = $requisicao->input('cidade');
+        $cidade           = $requisicao->input('cidade');
         $descricao        = $requisicao->input('descricao');  
         
-        $nome_cidade = DB::table('cidades')
-                                ->select('cidades.nome')
-                                ->where('id', '=', $id_cidade)->get(['nome']);
+        // $nome_cidade = DB::table('cidades')
+        //                         ->select('cidades.nome')
+        //                         ->where('id', '=', $id_cidade)->get(['nome']);
         
-                foreach ($nome_cidade as $nome):
+        //         foreach ($nome_cidade as $nome):
                     
-                    $nome_cidade = $nome->nome;
+        //             $nome_cidade = $nome->nome;
                     
                     
-                endforeach;
+        //         endforeach;
         //dd($nome_cidade);
         
         $cadastrar = $this->obj_empresa->create([
@@ -92,10 +92,10 @@ class CompanieController extends Controller {
             'numero'          => $numero,
             'complemento'     => $complemento,
             'bairro'          => $bairro,            
-            'cidade'          => $nome_cidade, 
+            'cidade'          => $cidade, 
             'uf'              => $uf,
-            'descricao'       => $descricao,
-            'cidade_id'       => $id_cidade
+            'descricao'       => 'descricao',
+            'cidade_id'       => 0 //$id_cidade
         ]);
         
         //dd($cadastrar);
@@ -103,7 +103,7 @@ class CompanieController extends Controller {
         if ($cadastrar):
 
             //Rota do index dentro do controller
-            return redirect()->route('empresa.index')->with(['sucesso' => 'Empresa salvo com sucesso!']);
+            return redirect()->route('empresa.index')->with(['sucesso' => 'Empresa salva com sucesso!']);
 
         else:
             return redirect()->back()->withErrors(['errors' => 'Näo possivel alterar!']);

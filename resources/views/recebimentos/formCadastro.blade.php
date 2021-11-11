@@ -73,7 +73,7 @@
                         <label>Valor: </label>
                         <div class="input-group">
                             <div class="input-group-addon"><i class="glyphicon glyphicon-usd"></i></div>
-                            <input class="form-control" type="text" name="valor" id="valor" data-thousands="." data-decimal="," placeholder="R$9.999,99" />      
+                            {!! Form::text('valor', null, ['class' => 'form-control', 'id' => 'valor',  'placeholder' => 'R$9.999,99', 'data-thousands' => '.', 'data-decimal' => ',']) !!}           
                         </div>
                     </div>     
 

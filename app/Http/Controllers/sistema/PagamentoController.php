@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\PDF;
 use App\models\ParcelamentoPagamento;
 use App\Http\Controllers\sistema\ParcelamentoController;
+use DateTime;
+
 
 class PagamentoController extends Controller {
 
@@ -20,6 +22,7 @@ class PagamentoController extends Controller {
     protected $soma = 0;
     private $total_paginas = 10;
     protected $data_carbon;
+   
 
     public function __construct(Pagamento $objPagamento, Carbon $carbon) {
 
@@ -30,19 +33,53 @@ class PagamentoController extends Controller {
 
     public function index() {
 
+
+        /*
+          Status
+         0 - em aberto -  lancei < 3 dias antes - alerta branco
+
+         1 - há vencer - > 3 faltando 3 dias para vencer - alerta amarelho
+          
+         2 - pago - alerta verde
+
+         3 - atrasado - > 1 dia depois do vencimento - alerta vermelho
+
+
+          
+         */
+
         $title = "Contas à Pagar";
-        //dd($this->data_carbon->now()->month);
-        //dd($this->objPag->PrimeiroDia().'='.$this->objPag->UltimoDia());
-        //->whereBetween('pagamentos.data_vencimento', [ '2018-02-28 00:00:00', $this->objPag->UltimoDia()])
-        //
+    
         //inner join em 4 tabelas companies, pagamentos, provider, category_pagamentos
-        $obj_Pag_tab = DB::table('companies')
-                ->join('pagamentos', 'companies.id', '=', 'pagamentos.companie_id')
+        $obj_Pag_tab = DB::table('pagamentos')            
                 ->join('sub_cat_pagamentos', 'pagamentos.subcat_pag_id', '=', 'sub_cat_pagamentos.id')
-                ->select('pagamentos.*', 'sub_cat_pagamentos.nome', 'companies.nome_empresa', 'sub_cat_pagamentos.nome')
-                ->whereRaw('(MONTH(pagamentos.data_vencimento) = MONTH(CURDATE()))')
+                ->select('pagamentos.*', 'sub_cat_pagamentos.nome')
+                ->whereRaw('(MONTH(pagamentos.data_vencimento) = MONTH(CURDATE()))')               
+                ->whereRaw('(YEAR(pagamentos.data_vencimento) = YEAR(CURDATE()))')
                 ->OrderBy('pagamentos.data_vencimento')
                 ->paginate($this->total_paginas);
+
+
+                      // $arrDados = array();
+        foreach ($obj_Pag_tab as $valor) :
+
+            $id = $valor->id;
+            $intStatus = intval($valor->status);
+            $contador = count($obj_Pag_tab);
+
+            // echo "<pre>";            
+            // echo "Id:" . $id;
+            // echo "<br />";
+            // print_r($valor->data_vencimento);
+            // echo "<br />";
+            // echo "Status:". $intStatus;  
+            // echo "</pre>";
+            $data_vencimento = $this->data_carbon->parse($valor->data_vencimento)->format('Y-m-d');
+            
+            $retornoVerificaStatus = $this->verificaStatus($id, $intStatus, $data_vencimento, $contador);
+    
+        endforeach;
+
         
         //dd($obj_Pag_tab);
 
@@ -50,11 +87,13 @@ class PagamentoController extends Controller {
         $quantPagar = DB::table('pagamentos')
                 ->select(DB::raw('count(*) as Quant_Pagamentos'))
                 ->whereRaw('(MONTH(pagamentos.data_vencimento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(pagamentos.data_vencimento) = YEAR(CURDATE()))')
                 ->get();
 
-        //dd($quant_pagar);
+        
         foreach ($quantPagar as $quant):
             $quant_pag = $quant->Quant_Pagamentos;
+            // dd($quant_pag);
         endforeach;
 
         //Somatório dos contas a pagar
@@ -64,18 +103,87 @@ class PagamentoController extends Controller {
         //Recuperando dados da empresa
         $empresa = DB::table('companies')->get(['id', 'nome_empresa']);
 
-        foreach ($empresa as $dados_empr):
-
-            $empresa_id = $dados_empr->id;
-            $nome_empresa = $dados_empr->nome_empresa;
-
-        endforeach;
+      
+            // $empresa_id = 1;
+           
+        
 
         //Instância da data Carbon
         $data_carbon = $this->data_carbon;
 
-        return view('pagamentos.view_contaPagar', compact('obj_Pag_tab', 'title', 'data_carbon', 'soma', 'quant_pag', 'empresa_id', 'nome_empresa'));
+        return view('pagamentos.view_contaPagar', compact('obj_Pag_tab', 'title', 'data_carbon', 'soma', 'quant_pag'));
     }
+
+
+ public function verificaStatus($id, $status, $data_vencimento, $contador)
+    {
+
+        /*
+          Status
+         0 - em aberto -  lancei 5 dias antes - alerta branco
+
+         1 - há vencer - faltando 3 dias para vencer - alerta amarelho
+          
+         2 - pago - alerta verde
+
+         3 - atrasado - 1 dia depois do vencimento - alerta vermelho
+          
+         */
+
+        $dt = new DateTime();
+
+        //2 - pago - alerta verde
+        if ($status == 2) {
+            // return "Pago: alerta *alerta verde id:" . $id;
+        } else {
+
+            for ($i = 0; $i < $contador; $i++) {
+
+                date_default_timezone_set("America/Sao_Paulo");
+
+                $data_venc = date("Y-m-d", strtotime($data_vencimento));
+                $dataAtual = $dt->format("Y-m-d");
+
+                $tresDiasMais = date("Y-m-d", strtotime("-3 days", strtotime($dataAtual))); //Data vencimento contar 3 dias antes de vencer
+                $umDiaMaior = date("Y-m-d", strtotime("+1 days", strtotime($dataAtual))); //Data vencimento contar 1 dia depois do vencimento está atrasado
+
+                // echo "<br>";
+                // print_r($tresDiasMais . "\r3 dias");
+                // echo "<br>";
+                // print_r($umDiaMaior . "\r1 dia");   
+
+                //  0 - em aberto -  lancei 5 dias antes - alerta branco
+                if ($data_venc < $tresDiasMais && $status != 0) {
+
+                    // print_r("Menor que 3 dias, \rVencimento=" . $data_venc . "Seu id=" . $id);
+                   
+                    $this->objPag->find($id)->update([           
+                        'status' => 0                       
+                    ]);
+            
+                // 1 - há vencer - faltando 3 dias para vencer - alerta amarelho
+                } elseif ($data_venc >= $tresDiasMais && $data_venc < $umDiaMaior && $status != 1) {
+
+                    // print_r("<br>Perto de vencer***********\rVencimento=" . $data_venc . " Seu id=" . $id);
+                    $this->objPag->find($id)->update([           
+                        'status' => 1
+                       
+                    ]);
+            
+                //3 - atrasado - 1 dia depois do vencimento - alerta vermelho
+                } elseif ($data_venc >= $umDiaMaior && $status != 3) {
+
+                    // print_r("Atrasado**********\rVencimento=" . $data_venc . "Seu id=" . $id);
+                    $this->objPag->find($id)->update([           
+                        'status' => 3
+                       
+                    ]);
+            
+                }
+            }
+        } //fim do if de status 2
+    }
+
 
     /*     * ***********************Métodos Somatorio de 30 dias ********************************** */
 
@@ -84,8 +192,9 @@ class PagamentoController extends Controller {
         //dd($this->objPag->PrimeiroDia()." -".$this->objPag->UltimoDia());
 
         $soma = DB::table('pagamentos')
-                ->select(DB::raw('sum(valor)as Total'))
+                ->select(DB::raw('sum(valor)as Total'))                
                 ->whereRaw('(MONTH(pagamentos.data_vencimento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(pagamentos.data_vencimento) = YEAR(CURDATE()))')
                 ->get('valor');
         
         //Converter o array pelo valor float
@@ -176,7 +285,7 @@ class PagamentoController extends Controller {
 
 
         //Consulta no BD se tem algum pagamento
-        $verifica_pag = $this->objPag;
+        $verifica_pag = $this->objPag->all();
 
         //conta a quantidade
         $conta_pag = count($verifica_pag);
@@ -271,7 +380,8 @@ class PagamentoController extends Controller {
                     //quantidade de registros  
                     $quant_pagar = DB::select('select COUNT(*) AS Quant_Pagamentos
                                                 from pagamentos                                      
-                                                where MONTH(data_vencimento) = MONTH(CURDATE())                                      
+                                                where (YEAR(data_vencimento) = YEAR(CURDATE())) 
+                                                and (MONTH (data_vencimento) = MONTH (CURDATE())) 
                                            ');
                     //dd($quant_pagar);
                     foreach ($quant_pagar as $quant):
@@ -281,7 +391,8 @@ class PagamentoController extends Controller {
                     //Total do pagamentos somatório
                     $soma = DB::select('select sum(valor) AS TOTAL
                                         from pagamentos                                      
-                                        where MONTH(data_vencimento) = MONTH (CURDATE())                                  
+                                        where MONTH(data_vencimento) = MONTH (CURDATE())
+                                        and (YEAR(data_vencimento) = YEAR(CURDATE()))                                   
                                         ');
                     foreach ($soma as $total):
 
@@ -386,7 +497,8 @@ class PagamentoController extends Controller {
         $mensal = DB::select('select r.id,  r.data_vencimento, r.nome_pagamento, r.valor, scp.nome, nota_fiscal_cp from pagamentos r
                                         inner join sub_cat_pagamentos scp
                                         on(scp.id = r.subcat_pag_id)
-                                        where (MONTH (r.data_vencimento) = MONTH (CURDATE()))                                        
+                                        where (MONTH (r.data_vencimento) = MONTH (CURDATE()))      
+                                        and (YEAR(r.data_vencimento) = YEAR(CURDATE()))                                    
                                         ORDER BY r.data_vencimento'
         );
 
@@ -524,7 +636,9 @@ class PagamentoController extends Controller {
         $categoria = $requisicao->input('subcat_pag_id');
         $data_vencimento = $requisicao->input('data_vencimento');
 
-        //dd($requisicao->only('status'));
+        $obj_moeda_real = new MoedaMundialController();
+        
+        $valor_bd =  $obj_moeda_real->formatoBd($valor);
 
         $this->validate($requisicao, $this->objPag->rules);
 
@@ -536,7 +650,7 @@ class PagamentoController extends Controller {
 
         $alterar = $this->objPag->find($id)->update([
             'nome_pagamento' => $nome_pagamento,
-            'valor' => $valor,
+            'valor' => $valor_bd,
             'status' => $status,
             'descricao' => $descricao,
             'companie_id' => $empresa,

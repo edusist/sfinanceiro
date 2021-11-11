@@ -1373,7 +1373,7 @@ a.text-danger:focus {
 }
 .bg-primary {
     color: #fff;
-    background-color: #99CCFF;/*Fundo do menu*/
+    background-color: #337AB7;/*Fundo do menu*/
 }
 a.bg-primary:hover,
 a.bg-primary:focus {
@@ -4169,9 +4169,11 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .navbar {
     position: relative;
     min-height: 50px;
-    margin: 30px 0;
+    margin: 10px 0;
     border: 1px solid transparent;
-    font-size: 15px;
+    font-size: 1.8rem;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
 @media (min-width: 768px) {
     .navbar {
@@ -4497,8 +4499,8 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
     }
 }
 .navbar-default {
-    background-color: #99CCFF; /*Cor da menu*/
-    border-color: #99CCFF;
+    background-color: #337AB7; /*Cor da menu*/
+    border-color: #337AB7;
 }
 .navbar-default .navbar-brand {
     color: #fff;
@@ -4512,7 +4514,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
     color: #777;
 }
 .navbar-default .navbar-nav > li > a {
-    color: #1B3D49; /*cor da fonte padrão do menu */
+    color: #fff; /*cor da fonte padrão do menu */
 }
 .navbar-default .navbar-nav > li > a:hover,
 .navbar-default .navbar-nav > li > a:focus {
@@ -4522,8 +4524,8 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .navbar-default .navbar-nav > .active > a,
 .navbar-default .navbar-nav > .active > a:hover,
 .navbar-default .navbar-nav > .active > a:focus {
-    color: #fff;
-    background-color: #1b3d4a;  /*cor do menu caixa em focus */
+    color: #286090;
+    background-color: #fff;  /*cor do menu caixa em focus */
 }
 .navbar-default .navbar-nav > .disabled > a,
 .navbar-default .navbar-nav > .disabled > a:hover,
@@ -4594,7 +4596,7 @@ fieldset[disabled] .navbar-default .btn-link:focus {
 }
 .navbar-inverse {
     background-color: #222;
-    border-color: #99CCFF;
+    border-color: #337AB7;
 }
 .navbar-inverse .navbar-brand {
     color: #9d9d9d;
@@ -4608,11 +4610,11 @@ fieldset[disabled] .navbar-default .btn-link:focus {
     color: #9d9d9d;
 }
 .navbar-inverse .navbar-nav > li > a {
-    color: #1B3D49;
+    color: #fff; /*Cor da fonte*/
 }
 .navbar-inverse .navbar-nav > li > a:hover,
 .navbar-inverse .navbar-nav > li > a:focus {
-    color: #fff;
+    color: #101010;
     background-color: transparent;
 }
 .navbar-inverse .navbar-nav > .active > a,
@@ -4644,7 +4646,7 @@ fieldset[disabled] .navbar-default .btn-link:focus {
 .navbar-inverse .navbar-nav > .open > a,
 .navbar-inverse .navbar-nav > .open > a:hover,
 .navbar-inverse .navbar-nav > .open > a:focus {
-    color: #fff;
+    color: #000;
     background-color: #0066C6;/* Quando mouse tiver focus fundo seleção */
 }
 @media (max-width: 767px) {

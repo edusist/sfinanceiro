@@ -23,8 +23,8 @@ class Companie extends Model
         'endereco'          => 'required',
         'bairro'            => 'required',   
         'numero'            => 'required', 
-        'cidade',
-        'uf',
+        'cidade'            => 'required',
+        'uf'                => 'required',
        
     ];
 

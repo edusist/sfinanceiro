@@ -42,6 +42,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Cód. Recebimento</th>
                         <th>Data vencimento</th>  
                         <th>Nome</th>                
                         <th>Nota Fiscal</th>
@@ -52,6 +53,8 @@
                 <tbody>                
                     <tr>
                         <td>{{$arr_cred->id}}</td>
+                        
+                        <td>{{$arr_cred->receipt_id}}</td>
                         <td>{{$dataFormatoBr->parse($arr_cred->data_vencimento)->format('d/m/Y')}}</td>
                         <td>{{$arr_cred->nome_recebimento}}</td>                       
                         <td>{{$arr_cred->nota_fiscal_cr}}</td>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Maatwebsite\Excel\Excel; //planilhas export e import
+
 use Illuminate\Support\Facades\DB;
 use App\models\Receipt;
 use App\models\Pagamento;
@@ -180,13 +181,13 @@ class ExcelController extends Controller {
         //converte em Json e depois converte em array
         $pagamento = json_decode(json_encode($Array_pag), true);
 
-        $this->obj_excel->create('contas_pagar', function($excel) use($pagamento) {
+         Excel::download/Excel::store('contas_pagar', function($excel) use($pagamento) {
 
             // Set the title
             $excel->setTitle('Planilha de Contas à pagar');
 
             // Chain the setters
-            $excel->setCreator('Eduardo')->setCompany('Axia Contabilidade');
+            $excel->setCreator('Eduardo')->setCompany('Empresa Eduardo');
 
             $excel->setDescription('Demonstrativo de contas á pagar');
 

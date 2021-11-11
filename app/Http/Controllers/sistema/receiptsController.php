@@ -11,8 +11,10 @@ use Carbon\Carbon;
 use App\Http\Controllers\sistema\ParcelamentoController;
 use App\models\ParcelamentoRecebimento;
 use App\models\Companie;
+use DateTime;
 
-class receiptsController extends Controller {
+class receiptsController extends Controller
+{
 
     protected $objRec;
     protected $obj_moeda;
@@ -20,21 +22,29 @@ class receiptsController extends Controller {
     private $total_paginas = 10; //Valor para paginação
     private $data_carbon;
 
-    public function __construct(Receipt $objRecebimento, Carbon $carbon) {
+    public function __construct(Receipt $objRecebimento, Carbon $carbon)
+    {
 
         $this->objRec = $objRecebimento;
         $this->data_carbon = $carbon;
         $this->middleware('auth:admin');
     }
 
-    //Listar os recebimentos
-    public function index() {
-
+    //********************Listar os recebimentos**************************************************************
+    public function index()
+    {
         /*
           Status
-          0 - em aberto
-          1 - pago
-          2 - atrasado
+         0 - em aberto -  lancei < 3 dias antes - alerta branco
+
+         1 - há vencer - > 3 faltando 3 dias para vencer - alerta amarelho
+          
+         2 - pago - alerta verde
+
+         3 - atrasado - > 1 dia depois do vencimento - alerta vermelho
+
+
+          
          */
 
         $title = "Contas à Receber";
@@ -42,151 +52,198 @@ class receiptsController extends Controller {
         //dd([$this->objRec->PrimeiroDia(), $this->objRec->UltimoDia()]);
         //inner join em 4 tabelas companies, receipts, customers, sub_cat_recebimentos
         $obj_Rec_tab = DB::table('receipts')
-                ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
-                ->join('companies', 'companies.id', '=', 'receipts.companie_id')
-                ->select('receipts.*', 'companies.nome_empresa', 'sub_cat_recebimentos.nome')
-                ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
-                ->OrderBy('receipts.data_vencimento')
-                ->paginate($this->total_paginas);
+            ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
+            ->select('receipts.*', 'sub_cat_recebimentos.nome')
+            ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
+            ->whereRaw('(YEAR(receipts.data_vencimento) = YEAR(CURDATE()))')
+            ->OrderBy('receipts.data_vencimento')
+            ->paginate($this->total_paginas);
 
+        // $arrDados = array();
+        foreach ($obj_Rec_tab as $valor) :
 
-        //dd($obj_Rec_tab);
-        //Testa os boletos em atraso 
-        foreach ($obj_Rec_tab as $valor):
+            $id = $valor->id;
+            $intStatus = intval($valor->status);
+            $contador = count($obj_Rec_tab);
 
+            // echo "<pre>";            
+            // echo "Id:" . $id;
+            // echo "<br />";
+            // print_r($valor->data_vencimento);
+            // echo "<br />";
+            // echo "Status:".  
+            // echo "</pre>";
             $data_vencimento = $this->data_carbon->parse($valor->data_vencimento)->format('Y-m-d');
-            $id_recebimento = $valor->id;
-
-            $status_atual = $valor->status;
-
-            //Testa o status se for diferente de 1 entra e alterar o status
-            if ($status_atual != '1'):
-
-                $data_atual = $this->objRec->dataAtualBd();
-
-                //Se a data_vencimento for menor que data atual está em atraso
-                if (strtotime($data_vencimento) < strtotime($data_atual)):
-
-
-                    //Altera o status para 2 se estiver atrasado
-                    $this->statusAtrasado($id_recebimento);
-
-                else://Entra dentro do else se a data vencimento for igual a data atual 
-                    //dd('entro no else');
-                    //quantidade de registros       
-                    $quant_receber = DB::table('receipts')
-                            ->select(DB::raw('count(*) as Quant_Recebimentos'))
-                            ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
-                            ->get();
-
-                    foreach ($quant_receber as $quant):
-                        $quant_rec = $quant->Quant_Recebimentos;
-                    endforeach;
-
-                    //Chama a função para somar todos os valores de recebimentos 
-                    $soma_moeda_real = $this->somaTrintaDias();
-
-                    $empresa = Companie::all();
-
-                    $empresa_cadastrada = count($empresa);
-
-                    //Verifica se tem alguma empresa cadastrada
-                    if ($empresa_cadastrada == 0):
-
-                        return redirect()->route('empresa.index')->withErrors(['errors' => 'Necessário Cadastrar uma nova empresa!']);
-
-                    else:
-
-                        //Recuperando dados da empresa
-                        $empresa = DB::table('companies')->get(['id', 'nome_empresa']);
-
-                        foreach ($empresa as $dados_empr):
-
-                            $empresa_id = $dados_empr->id;
-                            $nome_empresa = $dados_empr->nome_empresa;
-                            //dd($empresa_id);
-
-                        endforeach;
-
-                    //dd($nome_empresa);
-
-                    endif; //Fim do if de cadastrar empresa
-                    //Instância da data Carbon
-                    $data_carbon = $this->data_carbon;
-
-                    return(view('recebimentos.view_contaReceber', compact('obj_Rec_tab', 'title', 'soma_moeda_real', 'data_carbon', 'empresa_id', 'nome_empresa', 'quant_rec')));
-
-
-                endif;
-            endif;
+            
+            $retornoVerificaStatus = $this->verificaStatus($id, $intStatus, $data_vencimento, $contador);
+    
         endforeach;
+
+
+
+
+
+        //     $data_vencimento = $this->data_carbon->parse($valor->data_vencimento)->format('Y-m-d');
+        //     $id_recebimento = $valor->id;
+
+        //     $status_atual = $valor->status;
+
+
+
+        //     //Testa o status se for diferente de 1 entra e alterar o status
+        //     if ($status_atual != '1') :
+
+        //         $data_atual = $this->objRec->dataAtualBd();
+
+        //         //Se a data_vencimento for maior que data atual está em atraso
+        //         if (strtotime($data_vencimento) > strtotime($data_atual)) :
+
+
+        //         //Altera o status para 2 se estiver atrasado
+
+
+        //     else : //Entra dentro do else se a data vencimento for igual a data atual 
+
 
         //quantidade de registros       
         $quant_receber = DB::table('receipts')
-                ->select(DB::raw('count(*) as Quant_Recebimentos'))
-                ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
-                ->get();
+            ->select(DB::raw('count(*) as Quant_Recebimentos'))
+            ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
+            ->whereRaw('(YEAR(receipts.data_vencimento) = YEAR(CURDATE()))')
+            ->get();
 
-        foreach ($quant_receber as $quant):
+        foreach ($quant_receber as $quant) :
             $quant_rec = $quant->Quant_Recebimentos;
         endforeach;
 
         //Chama a função para somar todos os valores de recebimentos 
         $soma_moeda_real = $this->somaTrintaDias();
 
-        $empresa = Companie::all();
 
-        $empresa_cadastrada = count($empresa);
+        //Instância da data Carbon
+        $data_carbon = $this->data_carbon;
+        //dd($obj_Rec_tab);
+        return (view('recebimentos.view_contaReceber', compact('obj_Rec_tab', 'title', 'soma_moeda_real', 'data_carbon', 'quant_rec')));
 
-        //Verifica se tem alguma empresa cadastrada
-        if ($empresa_cadastrada == 0):
+        //quantidade de registros       
+        $quant_receber = DB::table('receipts')
+            ->select(DB::raw('count(*) as Quant_Recebimentos'))
+            ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
+            ->whereRaw('(YEAR(receipts.data_vencimento) = YEAR(CURDATE()))')
+            ->get();
 
-            return redirect()->route('empresa.index')->withErrors(['errors' => 'Necessário Cadastrar uma nova empresa!']);
+        foreach ($quant_receber as $quant) :
+            $quant_rec = $quant->Quant_Recebimentos;
+        endforeach;
 
-        else:
+        //Chama a função para somar todos os valores de recebimentos 
+        $soma_moeda_real = $this->somaTrintaDias();
 
-            //Recuperando dados da empresa
-            $empresa = DB::table('companies')->get(['id', 'nome_empresa']);
-
-            foreach ($empresa as $dados_empr):
-
-                $empresa_id = $dados_empr->id;
-                $nome_empresa = $dados_empr->nome_empresa;
-                //dd($empresa_id);
-
-            endforeach;
-
-        endif; //Fim do if de cadastrar empresa
         //Instância da data Carbon
         $data_carbon = $this->data_carbon;
 
-        return(view('recebimentos.view_contaReceber', compact('obj_Rec_tab', 'title', 'soma_moeda_real', 'data_carbon', 'empresa_id', 'nome_empresa', 'quant_rec')));
+        return (view('recebimentos.view_contaReceber', compact('obj_Rec_tab', 'title', 'soma_moeda_real', 'data_carbon', 'quant_rec')));
     }
 
-    public function cadEmpresa() {
+    public function verificaStatus($id, $status, $data_vencimento, $contador)
+    {
+
+        /*
+          Status
+         0 - em aberto -  lancei 5 dias antes - alerta branco
+
+         1 - há vencer - faltando 3 dias para vencer - alerta amarelho
+          
+         2 - pago - alerta verde
+
+         3 - atrasado - 1 dia depois do vencimento - alerta vermelho
+          
+         */
+
+        $dt = new DateTime();
+
+        //2 - pago - alerta verde
+        if ($status == 2) {
+            // return "Pago: alerta *alerta verde id:" . $id;
+        } else {
+
+            for ($i = 0; $i < $contador; $i++) {
+
+                date_default_timezone_set("America/Sao_Paulo");
+
+                $data_venc = date("Y-m-d", strtotime($data_vencimento));
+                $dataAtual = $dt->format("Y-m-d");
+
+                $tresDiasMais = date("Y-m-d", strtotime("-3 days", strtotime($dataAtual))); //Data vencimento contar 3 dias antes de vencer
+                $umDiaMaior = date("Y-m-d", strtotime("+1 days", strtotime($dataAtual))); //Data vencimento contar 1 dia depois do vencimento está atrasado
+
+                // echo "<br>";
+                // print_r($tresDiasMais . "\r3 dias");
+                // echo "<br>";
+                // print_r($umDiaMaior . "\r1 dia");   
+
+                //  0 - em aberto -  lancei 5 dias antes - alerta branco
+                if ($data_venc < $tresDiasMais && $status != 0) {
+
+                    // print_r("Menor que 3 dias, \rVencimento=" . $data_venc . "Seu id=" . $id);
+                   
+                    $this->objRec->find($id)->update([           
+                        'status' => 0                       
+                    ]);
+            
+                // 1 - há vencer - faltando 3 dias para vencer - alerta amarelho
+                } elseif ($data_venc >= $tresDiasMais && $data_venc < $umDiaMaior && $status != 1) {
+
+                    // print_r("<br>Perto de vencer***********\rVencimento=" . $data_venc . " Seu id=" . $id);
+                    $this->objRec->find($id)->update([           
+                        'status' => 1
+                       
+                    ]);
+            
+                //3 - atrasado - 1 dia depois do vencimento - alerta vermelho
+                } elseif ($data_venc >= $umDiaMaior && $status != 3) {
+
+                    // print_r("Atrasado**********\rVencimento=" . $data_venc . "Seu id=" . $id);
+                    $this->objRec->find($id)->update([           
+                        'status' => 3
+                       
+                    ]);
+            
+                }
+            }
+        } //fim do if de status 2
+    }
+
+    //********************Recuperando dados da empresa**************************************************************
+    public function cadEmpresa()
+    {
 
         //Recuperando dados da empresa
         $empresa = DB::table('companies')->get(['id', 'nome_empresa']);
 
-        foreach ($empresa as $dados_empr):
+        foreach ($empresa as $dados_empr) :
             return $dados_empr;
         endforeach;
     }
 
-    //Relatorio pdf
-    public function pdf(PDF $pdf) {
+
+    //********************Relatorio pdf**************************************************************
+
+    public function pdf(PDF $pdf)
+    {
 
         $receber = $this->objRec->all();
         $soma_moeda_real = $this->somaRecebimentos();
         $pdfcliente = $pdf->loadView('recebimentos/receber_pdf', ['receber' => $receber, 'soma_moeda_real' => $soma_moeda_real])
-                ->setPaper('a4', 'landscape')
-                ->setOptions(['dpi' => 150, 'defaultFont' => 'sans-serif']);
+            ->setPaper('a4', 'landscape')
+            ->setOptions(['dpi' => 150, 'defaultFont' => 'sans-serif']);
 
         return $pdfcliente->download('relatorio_recebimentos.pdf');
     }
 
-    //Retorna a pesquisa 
-    public function informacaoPesquisaRec(Request $requisicao) {
+    //********************Retorna a pesquisa **************************************************************
+    public function informacaoPesquisaRec(Request $requisicao)
+    {
 
         $title = "Pesquisa de Recebimento";
 
@@ -195,7 +252,7 @@ class receiptsController extends Controller {
         $receber = $this->listaPesquisa($requisicao['pesquisar']);
 
         //verifica se achou a alguma pesquisa
-        if (count($receber) > 0):
+        if (count($receber) > 0) :
 
             $pesquisa_rec = array('pesquisar' => $requisicao['pesquisar']);
 
@@ -206,28 +263,32 @@ class receiptsController extends Controller {
 
             return response($visao);
 
-        else: return redirect()->back()->withErrors(['errors' => 'Pesquisa não encontrada!']);
+        else : return redirect()->back()->withErrors(['errors' => 'Pesquisa não encontrada!']);
         endif;
     }
+    //********************Retorna Lista de pesquisa **************************************************************
 
-    public function listaPesquisa($pesquisar) {
+    public function listaPesquisa($pesquisar)
+    {
 
         //inner join em 4 tabelas companies, receipts, customers, sub_cat_recebimentos
         //return
         return $obj_Rec_tab = DB::table('companies')
-                ->join('receipts', 'companies.id', '=', 'receipts.companie_id')
-                ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
-                ->select('receipts.*', 'companies.nome_empresa', 'sub_cat_recebimentos.nome')
-                ->where('receipts.nome_recebimento', 'LIKE', '%' . ucfirst(trim($pesquisar)) . '%')//Converter 1º caracter em maiuscula.
-                ->orWhere('receipts.nota_fiscal_cr', 'LIKE', '%' . trim($pesquisar) . '%')//Retira os espaços em branco
-                ->orWhere('receipts.valor', 'LIKE', '%' . trim($pesquisar) . '%')
-                ->orWhere('sub_cat_recebimentos.nome', 'LIKE', '%' . trim($pesquisar) . '%')
-                ->OrderBy('receipts.data_vencimento')
-                ->paginate($this->total_paginas);
+            ->join('receipts', 'companies.id', '=', 'receipts.companie_id')
+            ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
+            ->select('receipts.*', 'companies.nome_empresa', 'sub_cat_recebimentos.nome')
+            ->where('receipts.nome_recebimento', 'LIKE', '%' . ucfirst(trim($pesquisar)) . '%') //Converter 1º caracter em maiuscula.
+            ->orWhere('receipts.nota_fiscal_cr', 'LIKE', '%' . trim($pesquisar) . '%') //Retira os espaços em branco
+            ->orWhere('receipts.valor', 'LIKE', '%' . trim($pesquisar) . '%')
+            ->orWhere('sub_cat_recebimentos.nome', 'LIKE', '%' . trim($pesquisar) . '%')
+            ->OrderBy('receipts.data_vencimento')
+            ->paginate($this->total_paginas);
     }
 
-    //Filtrar por período
-    public function filtroPorPeriodo($id) {
+
+    //********************Filtrar por período**************************************************************
+    public function filtroPorPeriodo($id)
+    {
 
         //Consulta no BD se tem algum recebimento
         $verifica_rec = $this->objRec->all();
@@ -236,13 +297,13 @@ class receiptsController extends Controller {
         $conta_rec = count($verifica_rec);
 
         //Verifica se existe Recebimento no Bd
-        if ($conta_rec == 0):
+        if ($conta_rec == 0) :
             return redirect()->back()->withErrors(['errors' => 'Näo existe Recebimento cadastrado!']);
 
-        else:
+        else :
 
             switch ($id) {
-                ///////////////////////////////////////Pesquisa  Dia atual/////////////////////////////////////
+                    ///////////////////////////////////////Pesquisa  Dia atual/////////////////////////////////////
                 case 1:
 
                     $title = 'Lista do Dia atual';
@@ -254,11 +315,11 @@ class receiptsController extends Controller {
 
                     //Somatório dos valores do recebimentos
                     $soma = DB::table('receipts')
-                            ->select(DB::raw('sum(valor) as total'))
-                            ->whereDate('receipts.data_vencimento', $data_formato_bd)
-                            ->get('valor');
+                        ->select(DB::raw('sum(valor) as total'))
+                        ->whereDate('receipts.data_vencimento', $data_formato_bd)
+                        ->get('valor');
 
-                    foreach ($soma as $valor):
+                    foreach ($soma as $valor) :
 
                         $soma_moeda_real = number_format($valor->total, 2, ',', '.');
 
@@ -266,11 +327,11 @@ class receiptsController extends Controller {
 
                     //Quantidade de recebimentos
                     $quant_rec = DB::table('receipts')
-                            ->select(DB::raw('count(*) as quant'))
-                            ->whereDate('receipts.data_vencimento', $data_formato_bd)
-                            ->get();
+                        ->select(DB::raw('count(*) as quant'))
+                        ->whereDate('receipts.data_vencimento', $data_formato_bd)
+                        ->get();
 
-                    foreach ($quant_rec as $quant):
+                    foreach ($quant_rec as $quant) :
 
                         $quant_rec = $quant->quant;
 
@@ -280,7 +341,7 @@ class receiptsController extends Controller {
 
                     break;
 
-                ///////////////////////////////////////Lista da Semana/////////////////////////////////////
+                    ///////////////////////////////////////Lista da Semana/////////////////////////////////////
                 case 2:
 
                     $title = 'Lista da Semana';
@@ -288,24 +349,26 @@ class receiptsController extends Controller {
                     $recebi_filtro = $this->listaSemanal();
 
                     //quantidade de registros       
-                    $quant_receber = DB::select('select COUNT(*) AS Quant_Recebimentos from receipts                                        
+                    $quant_receber = DB::select(
+                        'select COUNT(*) AS Quant_Recebimentos from receipts                                        
                                                 where (YEAR(data_vencimento) = YEAR(CURDATE())) 
                                                 and (MONTH (data_vencimento) = MONTH (CURDATE())) 
                                                 and (WEEK (data_vencimento) = WEEK (CURDATE()))'
                     );
 
-                    foreach ($quant_receber as $quant):
+                    foreach ($quant_receber as $quant) :
                         $quant_rec = $quant->Quant_Recebimentos;
                     endforeach;
 
                     //Total do recebimentos
-                    $soma = DB::select('select sum(valor) AS TOTAL from receipts                                        
+                    $soma = DB::select(
+                        'select sum(valor) AS TOTAL from receipts                                        
                                         where (YEAR(data_vencimento) = YEAR(CURDATE())) 
                                         and (MONTH (data_vencimento) = MONTH (CURDATE())) 
                                         and (WEEK (data_vencimento) = WEEK (CURDATE()))'
                     );
 
-                    foreach ($soma as $total):
+                    foreach ($soma as $total) :
 
                         $soma_moeda_real = number_format($total->TOTAL, 2, ',', '.');
 
@@ -315,37 +378,52 @@ class receiptsController extends Controller {
                     return (view('recebimentos.filtro_por_periodo', compact('recebi_filtro', 'soma_moeda_real', 'quant_rec', 'title')));
 
                     break;
-                ///////////////////////////////////////Lista do mês/////////////////////////////////////
+                    ///////////////////////////////////////Lista do mês/////////////////////////////////////
                 case 3:
                     $title = 'Lista do mês';
 
                     $recebi_filtro = $this->listaMensal();
+                    //dd($recebi_filtro);
 
                     //quantidade de registros  
                     $quant_receber = DB::select('select COUNT(*) AS Quant_Recebimentos
                                                 from receipts                                      
-                                                where MONTH(data_vencimento) = MONTH(CURDATE())                                      
+                                                where MONTH(data_vencimento) = MONTH(CURDATE())          
+                                                and (YEAR(data_vencimento) = YEAR(CURDATE()))                            
                                            ');
-                    //dd($quant_receber);
-                    foreach ($quant_receber as $quant):
+                    // dd($quant_receber);
+
+
+                    foreach ($quant_receber as $quant) :
+
                         $quant_rec = $quant->Quant_Recebimentos;
-                    endforeach;
-
-                    //Total do recebimentos somatório
-                    $soma = DB::select('select sum(valor) AS TOTAL
-                                        from receipts                                      
-                                        where MONTH(data_vencimento) = MONTH (CURDATE())                                  
-                                        ');
-                    foreach ($soma as $total):
-
-                        $soma_moeda_real = number_format($total->TOTAL, 2, ',', '.');
 
                     endforeach;
 
-                    return (view('recebimentos.filtro_por_periodo', compact('recebi_filtro', 'soma_moeda_real', 'quant_rec', 'title')));
+
+                    if ($quant_rec == 0) {
+
+                        return redirect()->back()->withErrors(['errors' => 'Não existe recebimentos para este mês!']);
+                    } else {
+
+                        //Total do recebimentos somatório
+                        $soma = DB::select('select sum(valor) AS TOTAL
+                                            from receipts                                      
+                                            where MONTH(data_vencimento) = MONTH (CURDATE())
+                                            and (YEAR(data_vencimento) = YEAR(CURDATE()))                                                               
+                                            ');
+                        foreach ($soma as $total) :
+
+                            $soma_moeda_real = number_format($total->TOTAL, 2, ',', '.');
+
+                        endforeach;
+
+                        return (view('recebimentos.filtro_por_periodo', compact('recebi_filtro', 'soma_moeda_real', 'quant_rec', 'title')));
+                    }
+
 
                     break;
-                ///////////////////////////////////////Lista do ano/////////////////////////////////////
+                    ///////////////////////////////////////Lista do ano/////////////////////////////////////
                 case 4:
                     $title = 'Lista do ano Corrente';
 
@@ -355,7 +433,7 @@ class receiptsController extends Controller {
                     $quant_receber = DB::select('select COUNT(id) AS Quant_Recebimentos from receipts                                      
                                         where (YEAR(data_vencimento) = YEAR(CURDATE()))                                        
                                         ');
-                    foreach ($quant_receber as $quant):
+                    foreach ($quant_receber as $quant) :
                         $quant_rec = $quant->Quant_Recebimentos;
                     endforeach;
 
@@ -363,7 +441,7 @@ class receiptsController extends Controller {
                     $soma = DB::select('select sum(valor) AS TOTAL from receipts                                      
                                         where (YEAR(data_vencimento) = YEAR(CURDATE()))                                        
                                         ');
-                    foreach ($soma as $total):
+                    foreach ($soma as $total) :
 
                         $soma_moeda_real = number_format($total->TOTAL, 2, ',', '.');
 
@@ -379,18 +457,18 @@ class receiptsController extends Controller {
                     $recebi_filtro = $this->listaTodos();
 
                     $quant_rec = DB::table('receipts')
-                            ->select(DB::raw('count(*) as Quant_Recebimentos'))
-                            ->get();
+                        ->select(DB::raw('count(*) as Quant_Recebimentos'))
+                        ->get();
 
-                    foreach ($quant_rec as $quant):
+                    foreach ($quant_rec as $quant) :
                         $quant_rec = $quant->Quant_Recebimentos;
                     endforeach;
 
                     $soma = DB::table('receipts')
-                            ->select(DB::raw('SUM(valor) as TOTAL_RECEBIMENTOS'))
-                            ->get();
+                        ->select(DB::raw('SUM(valor) as TOTAL_RECEBIMENTOS'))
+                        ->get();
 
-                    foreach ($soma as $total):
+                    foreach ($soma as $total) :
 
                         $soma_moeda_real = number_format($total->TOTAL_RECEBIMENTOS, 2, ',', '.');
 
@@ -408,21 +486,24 @@ class receiptsController extends Controller {
     }
 
     //Filtrar por período lista todos recebimento do dia
-    public function listaDiario($data_formato_bd) {
+    public function listaDiario($data_formato_bd)
+    {
 
         //Recupera um lista com dados por data atual
         $diario = DB::table('receipts')
-                ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
-                ->select('receipts.*', 'sub_cat_recebimentos.nome')
-                ->whereDate('receipts.data_vencimento', $data_formato_bd)
-                ->get();
+            ->join('sub_cat_recebimentos', 'sub_cat_recebimentos.id', '=', 'receipts.subcat_rec_id')
+            ->select('receipts.*', 'sub_cat_recebimentos.nome')
+            ->whereDate('receipts.data_vencimento', $data_formato_bd)
+            ->get();
         return $diario;
     }
 
     //Filtrar por período lista todos recebimento do semana
-    public function listaSemanal() {
+    public function listaSemanal()
+    {
 
-        $semanal = DB::select('select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
+        $semanal = DB::select(
+            'select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
                                         inner join sub_cat_recebimentos scp
                                         on(scp.id = r.subcat_rec_id)
                                         where (YEAR(r.data_vencimento) = YEAR(CURDATE())) 
@@ -435,12 +516,15 @@ class receiptsController extends Controller {
     }
 
     //Filtrar por período lista todos recebimento do mês
-    public function listaMensal() {
+    public function listaMensal()
+    {
 
-        $mensal = DB::select('select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
+        $mensal = DB::select(
+            'select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
                                         inner join sub_cat_recebimentos scp
                                         on(scp.id = r.subcat_rec_id)
-                                        where (MONTH (r.data_vencimento) = MONTH (CURDATE()))                                        
+                                        where (MONTH (r.data_vencimento) = MONTH (CURDATE())) 
+                                        and (YEAR(data_vencimento) = YEAR(CURDATE()))                                         
                                         ORDER BY r.data_vencimento'
         );
 
@@ -448,9 +532,11 @@ class receiptsController extends Controller {
     }
 
     //Filtrar por período lista todos recebimento do ano corrente
-    public function listaAnual() {
+    public function listaAnual()
+    {
 
-        $anual = DB::select('select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
+        $anual = DB::select(
+            'select r.id,  r.data_vencimento, r.nome_recebimento, r.valor, scp.nome, nota_fiscal_cr from receipts r
                                         inner join sub_cat_recebimentos scp
                                         on(scp.id = r.subcat_rec_id)
                                         where (YEAR(r.data_vencimento) = YEAR(CURDATE()))                                        
@@ -460,21 +546,24 @@ class receiptsController extends Controller {
         return $anual;
     }
 
-    public function listaTodos() {
+    public function listaTodos()
+    {
 
         $todos = $this->objRec
-                ->paginate($this->total_paginas);
+            ->paginate($this->total_paginas);
 
         return $todos;
     }
 
     //Pesquisa por data rcalendário
-    public function pesquisarDataReceber() {
+    public function pesquisarDataReceber()
+    {
 
         return view('recebimentos.pesquisar-por-data-rec');
     }
 
-    public function postPesquisarDataReceber(Request $requisicao) {
+    public function postPesquisarDataReceber(Request $requisicao)
+    {
 
         $title = "Recebimento Pesquisado";
 
@@ -485,33 +574,34 @@ class receiptsController extends Controller {
         $data_formato_bd = $array_data[2] . "-" . $array_data[1] . "-" . $array_data[0];
 
         $pesquisa_data_venc = DB::table('receipts')
-                ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
-                ->select('receipts.*', 'sub_cat_recebimentos.nome')
-                ->whereDate('receipts.data_vencimento', $data_formato_bd)
-                ->get();
+            ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
+            ->select('receipts.*', 'sub_cat_recebimentos.nome')
+            ->whereDate('receipts.data_vencimento', $data_formato_bd)
+            ->get();
 
 
         //verifica se achou a alguma pesquisa
-        if (count($pesquisa_data_venc) > 0):
+        if (count($pesquisa_data_venc) > 0) :
 
             $visao = view('recebimentos.lista-pesquisa-data-receber', compact('pesquisa_data_venc', 'title'));
 
             return response($visao);
 
-        else: return redirect()->back()->withErrors(['errors' => 'Data não encontrada!']);
+        else : return redirect()->back()->withErrors(['errors' => 'Data não encontrada!']);
         endif;
     }
 
     /*     * *************************Métodos para Cadastrar********************************** */
 
-    public function create() {
+    public function create()
+    {
 
         $obj_rec = $this->objRec->paginate($this->total_paginas);
         $title = 'Cadastrar';
 
         //Instância da classe Empresas
         $empresas = Companie::all('id');
-        foreach ($empresas as $empresa):
+        foreach ($empresas as $empresa) :
             $empresa->id;
         endforeach;
         $id_empresa = $empresa->id;
@@ -523,7 +613,8 @@ class receiptsController extends Controller {
         return view('recebimentos.formCadastro', compact('obj_rec', 'obj_cat_rec', 'title', 'id_empresa'));
     }
 
-    public function store(Request $requisicao) {
+    public function store(Request $requisicao)
+    {
 
         /*
           Status
@@ -541,10 +632,11 @@ class receiptsController extends Controller {
         // dd($valor_bd);
         //Recupera valores do formulário
         $nome_recebimento = $requisicao->input('nome_recebimento');
-        $nota_fiscal = $requisicao->input('nota_fiscal_cr'); //aceita valor Null       
+        $nota_fiscal = $requisicao->input('nota_fiscal_cr'); //aceita valor Null   
+        //Status vem 0 por padrão    
         $status = $requisicao->input('status');
         $descricao = $requisicao->input('descricao');
-        $empresa = $requisicao->input('companie_id');
+        $empresa = 1;
         $categoria = $requisicao->input('subcat_rec_id');
         $data_vencimento = $requisicao->input('data_vencimento');
 
@@ -558,11 +650,11 @@ class receiptsController extends Controller {
         //Recupera a data de hoje
         $data_atual = $this->objRec->dataAtualBd();
         //dd($data_atual.''.$ret_data);
-        //Se a data_vencimento for menor que data atual está em atraso
+        //Se a data_vencimento for maior que data atual está em atraso
         //verifica data atrasa
-        if (strtotime($ret_data) < strtotime($data_atual)):
+        if (strtotime($ret_data) > strtotime($data_atual)) :
 
-            $status = 2;
+            $status = 3;
 
             //Salva valores recuperados do formulário que usuário digitou
             $cadastrar = $this->objRec->create([
@@ -576,18 +668,18 @@ class receiptsController extends Controller {
                 'data_vencimento' => $ret_data,
             ]);
             /////////////////////////////////Cadastro se atrasado ////////////////////////////////////////////
-            if ($cadastrar):
+            if ($cadastrar) :
 
                 //Rota do index dentro do controller
                 return redirect()->route('recebimento.index')->with(['sucesso' => 'Recebimento salvo com sucesso!']);
 
-            else:
+            else :
                 return redirect()->back()->withErrors(['errors' => 'Näo possivel alterar!']);
 
             endif;
 
         /////////////////////////////////Cadastro de Não atrasado ////////////////////////////////////////////
-        else://verifica data atrasa
+        else : //verifica data atrasa
             //Salva valores recuperados do formulário que usuário digitou
             $cadastrar = $this->objRec->create([
                 'nome_recebimento' => $nome_recebimento,
@@ -600,12 +692,12 @@ class receiptsController extends Controller {
                 'data_vencimento' => $ret_data,
             ]);
 
-            if ($cadastrar):
+            if ($cadastrar) :
 
                 //Rota do index dentro do controller
                 return redirect()->route('recebimento.index')->with(['sucesso' => 'Recebimento salvo com sucesso!']);
 
-            else:
+            else :
                 return redirect()->back()->withErrors(['errors' => 'Näo possivel alterar!']);
 
             endif; //fim if cadastra
@@ -615,7 +707,8 @@ class receiptsController extends Controller {
 
     /*     * ******************************Métodos para Editar********************************** */
 
-    public function edit($id) {
+    public function edit($id)
+    {
 
         //Carrega 1 Objeto Json pelo Id, para preencher o formulário para editar 
         $obj_rec = $this->objRec->find($id);
@@ -629,50 +722,61 @@ class receiptsController extends Controller {
         return view('recebimentos.formCadastro', compact('title', 'obj_rec', 'obj_cat_rec'));
     }
 
-    public function update(Request $requisicao, $id) {
+    public function update(Request $requisicao, $id)
+    {
 
+        // dd($requisicao->data_vencimento);
 
         //Recupera o status atual
         $status_atual = DB::table('receipts')
-                ->select('receipts.status')
-                ->where('id', '=', $id)
-                ->get('status');
+            ->select('receipts.status')
+            ->where('id', '=', $id)
+            ->get('status');
 
-        foreach ($status_atual as $status):
+        foreach ($status_atual as $status) :
 
             $status = $status->status;
         endforeach;
+        // dd($requisicao->data_vencimento);
 
+        // $array_data = explode("-", $requisicao->data_vencimento);
+        
+
+
+        // $array_data = explode("/", $retira_caracter_data);
+        
+        // $data_vencimento  = $array_data[2] . "-" . $array_data[1] . "-" . $array_data[0];
+        
         $nome_recebimento = $requisicao->input('nome_recebimento');
         $valor = $requisicao->input('valor');
         $descricao = $requisicao->input('descricao');
-        $empresa = $requisicao->input('companie_id');
+        $empresa = 1;
         $categoria = $requisicao->input('subcat_rec_id');
-        $data_vencimento = $requisicao->input('data_vencimento');
 
         $this->validate($requisicao, $this->objRec->rules);
 
+        $obj_moeda_real = new MoedaMundialController();
+
+        $valor_bd =  $obj_moeda_real->formatoBd($valor);
         //Converter na data formato bd EUA
-//        $array_data = explode("/", $data_vencimento);
-//        //dd($array_data);
-//        $data_formato_bd = $array_data[2] . "-" . $array_data[1] . "-" . $array_data[0];
-        //dd($data_formato_bd);
+
+        //    ($data_formato_bd));
 
         $alterar = $this->objRec->find($id)->update([
             'nome_recebimento' => $nome_recebimento,
-            'valor' => $valor,
+            'valor' => $valor_bd,
             'status' => $status,
             'descricao' => $descricao,
             'companie_id' => $empresa,
             'subcat_rec_id' => $categoria,
-            'data_vencimento' => $data_vencimento,
+            'data_vencimento' => $requisicao->data_vencimento
         ]);
-
-        if ($alterar):
+        //dd($alterar);
+        if ($alterar) :
 
             return redirect()->route('recebimento.index')->with(['sucesso' => ' Recebimento alterado com sucesso!']);
 
-        else:
+        else :
 
             return redirect()->withErrors(['errors' => 'Näo possivel alterar!']);
 
@@ -681,59 +785,62 @@ class receiptsController extends Controller {
 
     /*     * *******************************Métodos para Excluir********************************** */
 
-    public function getExcluirTodasRec() {
+    public function getExcluirTodasRec()
+    {
 
         $title = 'Excluir todos os recebimentos';
 
         $obj_rec = DB::table('receipts')
-                ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
-                ->select('receipts.*', 'sub_cat_recebimentos.nome')
-                ->OrderBy('receipts.data_vencimento')
-                ->get();
+            ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
+            ->select('receipts.*', 'sub_cat_recebimentos.nome')
+            ->OrderBy('receipts.data_vencimento')
+            ->get();
 
         //quantidade de registros       
         $quant_receber = DB::table('receipts')
-                ->select(DB::raw('count(*) as Quant_Recebimentos'))
-                ->get();
+            ->select(DB::raw('count(*) as Quant_Recebimentos'))
+            ->get();
 
-        foreach ($quant_receber as $quant):
+        foreach ($quant_receber as $quant) :
             $quant_rec = $quant->Quant_Recebimentos;
         endforeach;
 
         //quantidade de registros       
         $soma = DB::table('receipts')
-                ->select(DB::raw('sum(valor) as SOMA_TOTAL'))
-                ->get();
+            ->select(DB::raw('sum(valor) as SOMA_TOTAL'))
+            ->get();
 
-        foreach ($soma as $valor_soma):
+        foreach ($soma as $valor_soma) :
 
             $soma_moeda_real = number_format($valor_soma->SOMA_TOTAL, 2, ',', '.');
 
         endforeach;
 
-//         dd($soma_moeda_real);
+        //         dd($soma_moeda_real);
 
         return view('recebimentos.excluir-todos-rec', compact('obj_rec', 'title', '$quant_receber', 'quant_rec', 'soma_moeda_real'));
     }
 
     //Exclui todos os registros
-    public function DeleteTodasRec() {
+    public function DeleteTodasRec()
+    {
 
         //dd('excluir');
         $deletar = DB::table('receipts')->delete();
 
-        if ($deletar):
+        if ($deletar) :
 
             return redirect()->route('recebimento.index')->with(['sucesso' => 'Todos Recebimentos excluidos com sucesso!']);
 
-        else:
+        else :
 
             return redirect()->back()->withErrors(['errors' => 'Näo possivel excluir!']);
 
         endif;
     }
 
-    public function show($id) {
+    public function show($id)
+    {
 
         //Procura pelo id dentro da tabela receips
         $obj_rec = $this->objRec->find($id);
@@ -747,14 +854,15 @@ class receiptsController extends Controller {
         return view('recebimentos.show', compact('title', 'obj_rec', 'data_carbon'));
     }
 
-    public function destroy($id) {
+    public function destroy($id)
+    {
 
         $deletar = $this->objRec->find($id)->delete();
 
-        if ($deletar):
+        if ($deletar) :
 
             return redirect()->route('recebimento.index')->with(['sucesso' => 'Recebimento excluido com sucesso!']);
-        else:
+        else :
 
             return redirect()->back()->withErrors(['errors' => 'Näo possivel excluir!']);
 
@@ -762,28 +870,33 @@ class receiptsController extends Controller {
     }
 
     //Somatorio de 30 dias 
-    public function somaTrintaDias() {
+    public function somaTrintaDias()
+    {
 
         $soma = DB::table('receipts')
-                ->select(DB::raw('sum(valor)as Total'))
-                ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
-                ->get('valor');
+            ->select(DB::raw('sum(valor)as Total'))
+            ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
+            ->whereRaw('(YEAR(receipts.data_vencimento) = YEAR(CURDATE()))')
+            ->get();
 
         //Converter o array pelo valor float
-        foreach ($soma as $valor):
+        foreach ($soma as $valor) :
+            // dd($valor);
             $soma_total = floatval($valor->Total);
+
         endforeach;
 
         return number_format($soma_total, 2, ',', '.');
     }
 
     //Soma de todos os recebimentos do banco de dados
-    public function somaRecebimentos() {
+    public function somaRecebimentos()
+    {
 
         //Recuperando uma lista de valores de coluna
         $valor = $this->objRec->all()->pluck('valor');
 
-        foreach ($valor as $valor_rec):
+        foreach ($valor as $valor_rec) :
             $this->soma += floatval($valor_rec);
 
         endforeach;
@@ -792,23 +905,25 @@ class receiptsController extends Controller {
     }
 
     //Busca com nome da empresa
-    public function empresaRecebimento($empresa) {
+    public function empresaRecebimento($empresa)
+    {
 
         $title = "Empresa: {$empresa}";
         $rec_empresa = DB::table('companies')
-                ->join('receipts', 'companies.id', '=', 'receipts.companie_id')
-                ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
-                ->select('receipts.*', 'companies.nome_empresa', 'sub_cat_recebimentos.nome')
-                ->where('companies.nome_empresa', 'LIKE', '%' . $empresa . '%')
-                ->OrderBy('receipts.data_vencimento')
-                ->paginate(5);
+            ->join('receipts', 'companies.id', '=', 'receipts.companie_id')
+            ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
+            ->select('receipts.*', 'companies.nome_empresa', 'sub_cat_recebimentos.nome')
+            ->where('companies.nome_empresa', 'LIKE', '%' . $empresa . '%')
+            ->OrderBy('receipts.data_vencimento')
+            ->paginate(5);
 
         return view('recebimentos.empresaRecebimento', compact('rec_empresa', 'title'));
     }
 
     /*     * ******************************Métodos para Parcelamento********************************** */
 
-    public function receberParcelamento($id) {
+    public function receberParcelamento($id)
+    {
 
         $obj_rec = $this->objRec->paginate($this->total_paginas);
         $title = 'Cadastrar parcelamento';
@@ -828,7 +943,8 @@ class receiptsController extends Controller {
         return view('recebimentos.formCadParcelamentoRec', compact('obj_rec', 'obj_cat_rec', 'title', 'parcelamentos', 'id_empresa'));
     }
 
-    public function postParcelamentoRec(Request $requisicao) {
+    public function postParcelamentoRec(Request $requisicao)
+    {
 
         //dd($requisicao->all());
         //Validação dos campos de formulário
@@ -851,7 +967,7 @@ class receiptsController extends Controller {
         $nota_fiscal_cr = $requisicao->input('nota_fiscal_cr');
         $valor = $requisicao->input('valor');
         $descricao = $requisicao->input('descricao');
-        $empresa = $requisicao->input('companie_id');
+        $empresa = 1;
         $categoria = $requisicao->input('subcat_rec_id');
         $data_vencimento = $requisicao->input('data_vencimento');
 
@@ -862,7 +978,7 @@ class receiptsController extends Controller {
         //Chamada função para opção de parcelamento
         $retorno_parcelas = $this->menuTipoParcelamento($data_vencimento, $nome_parcela, $quant_parcela);
 
-        foreach ($retorno_parcelas as $key => $ret_data_vencimento):
+        foreach ($retorno_parcelas as $key => $ret_data_vencimento) :
 
             //converte data no padrão UTC-mundial
             $ret_data = $this->data_carbon->parse($ret_data_vencimento)->format('Y-m-d H:i:s');
@@ -880,7 +996,7 @@ class receiptsController extends Controller {
                 'subcat_rec_id' => $categoria,
             ]);
 
-            if ($retorno_rec):
+            if ($retorno_rec) :
 
                 print_r("Salva com sucesso" . $retorno_rec);
 
@@ -898,16 +1014,17 @@ class receiptsController extends Controller {
             ]);
 
         endforeach;
-        if ($salva_parcelamento):
+        if ($salva_parcelamento) :
             return redirect()->route('recebimento.index')->with(['sucesso' => 'Parcelamento do Recebimento salva com sucesso!']);
-        else:
+        else :
 
             return redirect()->back()->withErrors(['errors' => 'Näo possivel salvar parcelamento']);
 
         endif;
     }
 
-    public function menuTipoParcelamento($data_vencimento, $nome_parcela, $quant_parcela) {
+    public function menuTipoParcelamento($data_vencimento, $nome_parcela, $quant_parcela)
+    {
 
         $dt = explode("/", $data_vencimento); //retira o espaço no meio quebra em um array
         //dd($dt);
@@ -921,7 +1038,7 @@ class receiptsController extends Controller {
 
         switch ($nome_parcela) {
 
-            //dd($nome_parcela);
+                //dd($nome_parcela);
             case 'Diario';
 
                 $Arr_diario = $this->objParcelas->parcelaDiariamente();
@@ -973,16 +1090,13 @@ class receiptsController extends Controller {
                 echo "<script>alert('Escolha uma opção entre 1 à 8!');<script>";
         }
     }
-
-    public function statusAtrasado($id) {
-
-        $alterar = $this->objRec
-                ->where('id', $id)
-                ->update(['status' => '2']);
-        return $alterar;
-    }
-
 }
+
+
+// echo "<pre>";
+// print_r();
+// echo "<br />";
+// echo "</pre>";
 
 //Recuperando dados da empresa
 //        $empresa = DB::table('companies')->get(['id', 'nome_empresa']);

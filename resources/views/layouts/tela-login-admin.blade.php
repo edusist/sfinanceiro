@@ -25,7 +25,7 @@ window.Laravel = {!! json_encode(['csrfToken' => csrf_token(), ]) !!};
         
         <div class="container-fluid" style="margin-top: 10px;">
             
-            <h1 class="title-pg" style="text-align: center;">Sistema de Gestão Financeira - AIO</h1>
+            <h1 class="title-pg" style="text-align: center;">Sistema de Gestão Financeira</h1>
             @yield('content')
         </div><!-- /fim da div container-fluid -->
 

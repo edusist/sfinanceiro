@@ -23,11 +23,13 @@ class CreditoController extends Controller {
 
     public function listaCreditos() {
 
-        $title = 'Créditos da empresa';
+        $title = 'Créditos';
 
         //Somatório dos vréditos
         $total = DB::table('creditos')
                 ->select(DB::raw('sum(valor)as total'))
+                ->whereRaw('(MONTH(creditos.data_recebimento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(creditos.data_recebimento) = YEAR(CURDATE()))')
                 ->get('valor');
 
         foreach ($total as $total_cred):
@@ -47,6 +49,8 @@ class CreditoController extends Controller {
                 ->join('sub_cat_recebimentos', 'receipts.subcat_rec_id', '=', 'sub_cat_recebimentos.id')
                 ->join('forma_pagamentos', 'creditos.forma_pagamento_id', '=', 'forma_pagamentos.id')
                 ->select('creditos.*', 'forma_pagamentos.tipo', 'sub_cat_recebimentos.nome')
+                ->whereRaw('(MONTH(receipts.data_vencimento) = MONTH(CURDATE()))')
+                ->whereRaw('(YEAR(receipts.data_vencimento) = YEAR(CURDATE()))')
                 ->paginate($this->total_paginas);
 
 
@@ -70,7 +74,6 @@ class CreditoController extends Controller {
             return redirect()->back()->withErrors(['errors' => 'Este recebimento com id = ' . $id . ' já foi recebido!']);
 
         else:
-
 
             $recupera_cr = DB::table('receipts')
                     ->select('receipts.*')
@@ -153,7 +156,7 @@ class CreditoController extends Controller {
             //alterar status de pagamento para 1  
             $alterar = DB::table('receipts')
                     ->where('id', $id_recebimento)
-                    ->update(['status' => '1']);
+                    ->update(['status' => '2']);
 
             //dd($alterar);
             $salvar_credito = $this->objCred->create([

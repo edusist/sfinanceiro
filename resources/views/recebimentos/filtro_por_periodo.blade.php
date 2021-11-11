@@ -30,8 +30,7 @@
                         <th>Data de Vencimento</th>                        
                         <th>Nome</th>                    
                         <th>Valor</th>                                        
-                        <th>Categoria</th>
-                         <th>Nota Fiscal</th>
+                        <th>Nota Fiscal</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -42,8 +41,7 @@
                         <td>{{$valor->id}}</td>
                         <td>{{date('d/m/Y', strtotime($valor->data_vencimento))}}</td>                        
                         <td>{{$valor->nome_recebimento}}</td>
-                        <td>R${{number_format($valor->valor, 2, ',', '.')}}</td>                                               
-                        <td>{{$valor->nome}}</td>     
+                        <td>R${{number_format($valor->valor, 2, ',', '.')}}</td>                                              
                         <td>{{$valor->nota_fiscal_cr}}</td>
 
                         <td><a href="{{route('recebimento.edit', $valor->id)}}" class="edit">

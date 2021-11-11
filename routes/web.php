@@ -54,7 +54,7 @@ Route::group(['middleware' => ['admin']], function() {
     Route::get('/admin/pesquisar-data-receber', 'sistema\receiptsController@pesquisarDataReceber')->name('pesquisarDataReceber');
     Route::post('/admin/pesquisar-data-receber', 'sistema\receiptsController@postPesquisarDataReceber')->name('postPesquisarDataReceber');
     
-    //Importar e exportar Excel Recebimento
+    // //Importar e exportar Excel Recebimento
     Route::get('/admin/getImportar', 'ExcelController@getImportar')->name('getImportar');
     Route::post('/admin/postImportar', 'ExcelController@postImportar')->name('postImportar');
     Route::get('/admin/getExportar', 'ExcelController@getExportar')->name('getExportar');
@@ -104,7 +104,7 @@ Route::group(['middleware' => ['admin']], function() {
     Route::delete('/admin/excluir-todas-pag', 'sistema\PagamentoController@DeleteTodasPag')->name('DeleteTodasPag');
     
     //Rotas Excel pagamentos
-    Route::get('/admin/exportar-Pagamento', 'ExcelController@exportarPagamento')->name('exportarPagamento');
+    // Route::get('/admin/exportar-Pagamento', 'ExcelController@exportarPagamento')->name('exportarPagamento');
     
     //Gráfico pagamentos
     Route::get('/admin/grafico-pagamento', 'ExcelController@graficoPagamento')->name('graficoPagamento');

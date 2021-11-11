@@ -162,14 +162,15 @@ return [
         App\Providers\RouteServiceProvider::class,  
         Barryvdh\DomPDF\ServiceProvider::class,   
         Maatwebsite\Excel\ExcelServiceProvider::class,
+       
         
         //Gráfico        
-        ConsoleTVs\Charts\ChartsServiceProvider::class,
+        // ConsoleTVs\Charts\ChartsServiceProvider::class,
         //Gráfico Lavacharts
         //Khill\Lavacharts\Laravel\LavachartsServiceProvider::class,
         
         //Cidade/UF utilizando o artesaos/cidadesbr
-        Artesaos\Providers\CidadesServiceProvider::class,
+        // Artesaos\Providers\CidadesServiceProvider::class,
     ],
     /*
       |--------------------------------------------------------------------------
@@ -218,9 +219,9 @@ return [
         'View' => Illuminate\Support\Facades\View::class,
         'Form' => Collective\Html\FormFacade::class,
         'Html' => Collective\Html\HtmlFacade::class,         
-        'PDF' => Barryvdh\DomPDF\Facade::class,
+        'PDF' => Barryvdh\DomPDF\Facade::class,      
         'Excel' => Maatwebsite\Excel\Facades\Excel::class,
-        'Charts' => ConsoleTVs\Charts\Facades\Charts::class,
+        // 'Charts' => ConsoleTVs\Charts\Facades\Charts::class,
         //'Lava' => Khill\Lavacharts\Laravel\LavachartsFacade::class,
     ],
 ];

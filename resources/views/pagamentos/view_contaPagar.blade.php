@@ -1,8 +1,9 @@
 @extends('layouts.admin-home')
 
 @section('content')
-<h4>Seja bem vindo(a) à <strong style="text-transform:capitalize;">{{$nome_empresa}}</strong>!</h4>
+<h4>Seja bem vindo(a) à <strong style="text-transform:capitalize;">{{Auth::user()->name }}</strong>!</h4>
 <h1 class="title">{{$title}}</h1>
+<h3 class="text-center">Periódo do Mês:<strong>{{$data_carbon->now()->format('m/Y')}}</strong></h3>
 
 <h4><strong> Nº de pagamentos({{$quant_pag}})</strong></h4>
 <!--Mensagem de sucesso-->
@@ -52,7 +53,7 @@
                         </li>
                         <li>
                             <!-- Cadastrar parcelamento-->
-                            <a href="{{route('formCadParcelamentoPag', $empresa_id)}}" class="">
+                            <a href="{{route('formCadParcelamentoPag', 1)}}" class="">
                                 <span class="Glyphicon glyphicon-plus"></span>    
                                 Parcelar
                             </a>
@@ -171,25 +172,6 @@
 <script type="text/javascript" src="{{url('assets/datepicker/js/bootstrap-datepicker.min.js')}}"></script>
 <script type="text/javascript" src="{{url('assets/datepicker/js/bootstrap-datepicker.pt-BR.min.js')}}"></script>
 <script type="text/javascript" src="{{url('assets/datepicker/js/modal-calendario.js')}}"></script>
-<script>
-//Verificar o status do Pagamento
-$('document').ready(function () {
-
-    $('.status').each(function () {
-        if ($(this).text().trim() == 1) {
-
-            $(this).parent('tr').css('background', '#98FB90');
-
-        } else if ($(this).text().trim() == 0) {
-
-            $(this).parent('tr').css('background', '#FFFF99');
-        } else {
-            $(this).parent('tr').css('background', '#f7cfcf');
-
-        }
-    });
-
-});
-
-</script>
+{{-- Verificar o status do Pagamento --}}
+<script type="text/javascript" src="{{url('assets/js/status_recebim_pagam.js')}}"></script>
 @endpush
